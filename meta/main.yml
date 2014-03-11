@@ -1,0 +1,15 @@
+# file: monit/meta/main.yml
+
+galaxy_info:
+  author: pjan vandaele
+  description: Install monit
+  min_ansible_version: 1.3
+  license: MIT
+  platforms:
+  - name: Ubuntu
+    versions:
+    - all
+  categories:
+  - system
+
+dependencies: []
