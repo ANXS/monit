@@ -1,6 +1,6 @@
 ## Ansibles - monit [![Build Status](https://travis-ci.org/Ansibles/monit.png)](https://travis-ci.org/Ansibles/monit)
 
-Install monit
+Install monit (and monitor cron, ntp & ssh)
 
 #### License
 
