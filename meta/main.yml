@@ -2,7 +2,7 @@
 
 galaxy_info:
   author: pjan vandaele
-  description: Install monit
+  description: Install Monit (and monitor cron, ssh, ntp)
   min_ansible_version: 1.3
   license: MIT
   platforms:
@@ -11,5 +11,6 @@ galaxy_info:
     - all
   categories:
   - system
+  - monitoring
 
 dependencies: []
