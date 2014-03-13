@@ -9,6 +9,8 @@
   copy:
     src: etc_monit_monitrc
     dest: /etc/monit/monitrc
+  notify:
+    - restart monit
 
 - name: Monit | Copy the sshd/ntp/chron monit service files
   template:
@@ -18,3 +20,5 @@
     - sshd
     - cron
     - ntp
+  notify:
+    - restart monit
