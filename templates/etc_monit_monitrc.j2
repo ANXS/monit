@@ -46,7 +46,7 @@ set alert {{monit_notify_email}} NOT ON { action, instance, pid, ppid }
 
 set httpd port {{monit_port}}
 {% if monit_address is defined %}  use address {{monit_address}}{% endif %}
-{% for a in monnit_allow %}  allow {{a}}{% endfor %}
+{% for a in monit_allow %}  allow {{a}}{% endfor %}
 {% if monit_ssl %}  ssl enable
   pemfile {{monit_cert}}
 {% endif %}
