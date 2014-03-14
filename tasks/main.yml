@@ -6,9 +6,9 @@
     state: present
 
 - name: Monit | Update the monit configuration (/etc/monit/monitrc)
-  copy:
-    src: etc_monit_monitrc
-    dest: /etc/monit/monitrc
+  template:
+    src: "etc_monit_monitrc.j2"
+    dest: "/etc/monit/monitrc"
   notify:
     - restart monit
 
