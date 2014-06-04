@@ -25,7 +25,7 @@ set idfile /var/lib/monit/id
 
 set statefile /var/lib/monit/state
 
-set mailserver {{monit_mailserver_host}} {% if monit_mailserver_port is defined %}{{monit_mailserver_port}}{% endif %}
+set mailserver {{monit_mailserver_host}}{% if monit_mailserver_port is defined %} port {{monit_mailserver_port}}{% endif %}
 
 {% if monit_mailserver_username is defined %}  username "{{monit_mailserver_username}}"{{'\n'}}{% endif %}
 {% if monit_mailserver_password is defined %}  password "{{monit_mailserver_password}}"{{'\n'}}{% endif %}
