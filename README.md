@@ -1,4 +1,4 @@
-## Ansibles - monit [![Build Status](https://travis-ci.org/Ansibles/monit.png)](https://travis-ci.org/Ansibles/monit)
+## ANXS - monit [![Build Status](https://travis-ci.org/ANXS/monit.png)](https://travis-ci.org/ANXS/monit)
 
 Ansible role which installs monit monitoring and management tool (and attaches it to ssh, cron, ntpd).
 
@@ -48,4 +48,4 @@ Licensed under the MIT License. See the LICENSE file for details.
 
 #### Feedback, bug-reports, requests, ...
 
-Are [welcome](https://github.com/ansibles/monit/issues)!
+Are [welcome](https://github.com/ANXS/monit/issues)!
