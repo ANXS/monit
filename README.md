@@ -38,6 +38,8 @@ monit_allow: ["localhost"]
 # monit_password:
 monit_ssl: no
 monit_cert: "/etc/monit/monit.pem"
+
+monit_monitors_sshd_port: 22
 ```
 
 
