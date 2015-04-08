@@ -21,4 +21,4 @@
     - cron
     - ntp
   notify:
-    - restart monit
+    - reload monit
