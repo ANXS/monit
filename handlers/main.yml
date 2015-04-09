@@ -4,3 +4,6 @@
   service:
     name: monit
     state: restarted
+
+- name: reload monit
+  command: "monit reload"
