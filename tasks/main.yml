@@ -22,3 +22,15 @@
     - ntp
   notify:
     - reload monit
+
+- name: Monit | Determine queued messages
+  command: "ls -1 {{monit_eventqueue_directory}}/"
+  register: monit_queued_messages
+  when: not monit_email_enable or not monit_eventqueue_enable
+
+- name: Monit | Remove queued messages
+  file:
+    path: "{{monit_eventqueue_directory}}/{{item}}"
+    state: absent
+  when: not monit_email_enable or not monit_eventqueue_enable
+  with_items: monit_queued_messages.stdout_lines
