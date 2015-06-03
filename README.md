@@ -10,6 +10,7 @@ Ansible role which installs monit monitoring and management tool (and attaches i
 #### Variables
 
 ```yaml
+monit_email_enable: yes
 monit_notify_email: "me@localhost"
 
 monit_logfile: "syslog facility log_daemon"
@@ -17,6 +18,7 @@ monit_logfile: "syslog facility log_daemon"
 monit_poll_period: 60
 monit_poll_start_delay: 120
 
+monit_eventqueue_enable: yes
 monit_eventqueue_directory: "/var/lib/monit/events"
 monit_eventque_slots: 100
 

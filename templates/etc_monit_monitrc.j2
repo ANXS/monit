@@ -25,6 +25,7 @@ set idfile /var/lib/monit/id
 
 set statefile /var/lib/monit/state
 
+{% if monit_email_enable -%}
 set mailserver {{monit_mailserver_host}}{% if monit_mailserver_port is defined %} port {{monit_mailserver_port}}{% endif %}
 
 {% if monit_mailserver_username is defined %}  username "{{monit_mailserver_username}}"{{'\n'}}{% endif %}
@@ -32,9 +33,11 @@ set mailserver {{monit_mailserver_host}}{% if monit_mailserver_port is defined %
 {% if monit_mailserver_encryption is defined %}  using {{monit_mailserver_encryption}}{{'\n'}}{% endif %}
 {% if monit_mailserver_timeout is defined %}  with timeout {{monit_mailserver_timeout}} seconds{{'\n'}}{% endif %}
 
+{% if monit_eventqueue_enable -%}
 set eventqueue
   basedir {{monit_eventqueue_directory}}
   slots {{monit_eventqueue_slots | default('100')}}
+{% endif -%}
 
 set mail-format {
   from: {{monit_mailformat_from}}
@@ -43,6 +46,7 @@ set mail-format {
 }
 
 set alert {{monit_notify_email}} NOT ON { action, instance, pid, ppid }
+{% endif -%}
 
 set httpd port {{monit_port}}
 {% if monit_address is defined %}  use address {{monit_address}}{{'\n'}}{% endif %}
