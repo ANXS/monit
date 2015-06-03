@@ -27,6 +27,7 @@
   command: "ls -1 {{monit_eventqueue_directory}}/"
   register: monit_queued_messages
   when: not monit_email_enable or not monit_eventqueue_enable
+  changed_when: False
 
 - name: Monit | Remove queued messages
   file:
