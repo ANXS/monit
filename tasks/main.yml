@@ -9,6 +9,7 @@
   template:
     src: "etc_monit_monitrc.j2"
     dest: "/etc/monit/monitrc"
+    mode: 0400
   notify:
     - restart monit
 
