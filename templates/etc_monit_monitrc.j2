@@ -45,7 +45,13 @@ set mail-format {
   message: {{monit_mailformat_message}}
 }
 
-set alert {{monit_notify_email}} NOT ON { action, instance, pid, ppid }
+{% if monit_notify_email is string %}
+  set alert {{monit_notify_email}} NOT ON { action, instance, pid, ppid }
+{% else %}
+  {% for email in monit_notify_email %}
+    set alert {{email}} NOT ON { action, instance, pid, ppid }
+  {% endfor %}
+{% endif %}
 {% endif -%}
 
 set httpd port {{monit_port}}
