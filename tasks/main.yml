@@ -35,4 +35,4 @@
     path: "{{monit_eventqueue_directory}}/{{item}}"
     state: absent
   when: not monit_email_enable or not monit_eventqueue_enable
-  with_items: "{{ monit_queued_messages.stdout_lines }}"
+  with_items: "{{ monit_queued_messages.stdout_lines | default([]) }}"
