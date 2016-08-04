@@ -23,6 +23,27 @@ monit_mailserver_host: "localhost"
 # monit_mailserver_encryption:
 monit_mailserver_timeout: 60
 
+monit_process_list: []
+
+# Example:
+#monit_process_list:
+
+  # The pid path is absolute, this is required.
+  #- pid: '/var/run/foo.pid'
+
+    # The process is simply the process name, defaults to the pid's basename.
+    #process: 'foo'
+
+    # Set a timeout, defaults to 60 seconds.
+    #timeout: 60
+
+    # The sysvinit style to start/stop a process, you can change this per process.
+    #start: '/etc/init.d/process start'
+    #stop: '/etc/init.d/process stop'
+
+    # Append custom script logic, defaults to nothing.
+    #script: |
+
 monit_port: 3737
 monit_address: "localhost"
 monit_allow: ["localhost"]
