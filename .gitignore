@@ -1,3 +1,7 @@
+# -*- mode: gitignore; -*-
+*~
+\#*\#
+.\#*
 .DS_Store
 .AppleDouble
 .LSOverride
