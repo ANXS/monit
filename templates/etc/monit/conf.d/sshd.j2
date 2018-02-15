@@ -2,5 +2,5 @@ check process sshd with pidfile /var/run/sshd.pid
   group system
   start program "/etc/init.d/ssh start"
   stop program "/etc/init.d/ssh stop"
-  if failed host 127.0.0.1 port {{monit_monitors_sshd_port|default(22)}} protocol ssh then restart
+  if failed host 127.0.0.1 port {{monit_monitors_sshd_port|default(22)}} protocol ssh retry {{monit_net_retry}} then restart
   if 5 restarts within 5 cycles then timeout
