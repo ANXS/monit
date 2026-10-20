@@ -10,6 +10,7 @@
     src: "etc/monit/monitrc.j2"
     dest: "/etc/monit/monitrc"
     mode: 0400
+  no_log: "{{ ansible_verbosity | int < 4 }}"
   notify:
     - restart monit
 
