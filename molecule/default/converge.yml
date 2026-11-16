@@ -1,0 +1,12 @@
+---
+- name: Converge Monit role
+  hosts: all
+  become: true
+  gather_facts: true
+  vars_files:
+    - vars.yml
+  roles:
+    - role: "{{ lookup('env', 'MOLECULE_PROJECT_DIRECTORY') | basename }}"
+      vars:
+        monit_process_checks: >-
+          {{ monit_active_process_checks + [monit_retired_process_check] }}

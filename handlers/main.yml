@@ -1,9 +1,12 @@
-# file: monit/handlers/main.yml
-
-- name: restart monit
-  service:
+---
+- name: Restart Monit
+  ansible.builtin.systemd_service:
     name: monit
     state: restarted
+  listen: Restart Monit
 
-- name: reload monit
-  command: "monit reload"
+- name: Reload Monit
+  ansible.builtin.systemd_service:
+    name: monit
+    state: reloaded
+  listen: Reload Monit

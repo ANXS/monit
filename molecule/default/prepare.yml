@@ -1,0 +1,73 @@
+---
+- name: Prepare Monit test host
+  hosts: all
+  become: true
+  gather_facts: false
+  tasks:
+    - name: Install fixture services
+      ansible.builtin.apt:
+        name:
+          - cron
+          - openssh-server
+          - python3
+        state: present
+        update_cache: true
+
+    - name: Create sshd runtime directory
+      ansible.builtin.file:
+        path: /run/sshd
+        state: directory
+        owner: root
+        group: root
+        mode: "0755"
+
+    - name: Enable fixture services
+      ansible.builtin.systemd_service:
+        name: "{{ item }}"
+        enabled: true
+        state: started
+      loop:
+        - cron
+        - ssh
+
+    - name: Install HTTP fixture unit
+      ansible.builtin.copy:
+        dest: /etc/systemd/system/molecule-http.service
+        owner: root
+        group: root
+        mode: "0644"
+        content: |
+          [Unit]
+          Description=Molecule HTTP fixture
+          After=network.target
+
+          [Service]
+          ExecStart=/usr/bin/python3 -m http.server 18080 --bind 127.0.0.1 --directory /tmp
+          Restart=on-failure
+
+          [Install]
+          WantedBy=multi-user.target
+
+    - name: Start HTTP fixture
+      ansible.builtin.systemd_service:
+        name: molecule-http
+        daemon_reload: true
+        enabled: true
+        state: started
+
+    - name: Create shared Monit configuration directory
+      ansible.builtin.file:
+        path: /etc/monit/conf.d
+        state: directory
+        owner: root
+        group: root
+        mode: "0755"
+
+    - name: Seed operator-owned Monit check
+      ansible.builtin.copy:
+        dest: /etc/monit/conf.d/operator-owned
+        owner: root
+        group: root
+        mode: "0644"
+        content: |
+          check file operator_fixture with path /etc/hosts

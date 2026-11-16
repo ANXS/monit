@@ -1,0 +1,50 @@
+check process {{ item.name }} {% if item.matching is defined %}matching "{{ item.matching }}"{% else %}with pidfile {{ item.pidfile }}{% endif %}
+{% if item.every | default(1) | int > 1 %}
+  every {{ item.every }} cycles
+{% endif %}
+{% if item.start is defined or item.service is defined %}
+  start program = "{{ item.start | default('/usr/bin/systemctl start ' + item.service) }}" with timeout {{ item.timeout | default(60) }} seconds
+{% endif %}
+{% if item.stop is defined or item.service is defined %}
+  stop program = "{{ item.stop | default('/usr/bin/systemctl stop ' + item.service) }}"
+{% endif %}
+{% if item.port is defined %}
+  if failed
+    host {{ item.port.host | default("127.0.0.1") }}
+    port {{ item.port.number }}
+    type {{ item.port.type | default("tcp") }}
+{% if item.port.protocol is defined %}
+    protocol {{ item.port.protocol }}
+{% endif %}
+{% if item.port.request is defined %}
+    request "{{ item.port.request }}"
+{% endif %}
+{% if item.port.status is defined %}
+    status = {{ item.port.status }}
+{% endif %}
+{% if item.port.tls is defined %}
+    with ssl options {
+      verify: {{ "enable" if item.port.tls.verify | default(true) else "disable" }}
+{% if item.port.tls.selfsigned | default(false) %}
+      selfsigned: allow
+{% endif %}
+{% if item.port.tls.ca_file is defined %}
+      cacertificatefile: {{ item.port.tls.ca_file }}
+{% endif %}
+{% if item.port.tls.client_pem_file is defined %}
+      clientpemfile: {{ item.port.tls.client_pem_file }}
+{% endif %}
+    }
+{% endif %}
+    retry {{ item.port.retry | default(monit_net_retry) }}
+  then {{ item.action | default("restart") }}
+{% endif %}
+{% if item.cpu_percent is defined %}
+  if cpu > {{ item.cpu_percent }}% for {{ item.cycles | default(1) }} cycles then {{ item.action | default("restart") }}
+{% endif %}
+{% if item.memory_percent is defined %}
+  if totalmem > {{ item.memory_percent }}% for {{ item.cycles | default(1) }} cycles then {{ item.action | default("restart") }}
+{% endif %}
+{% if item.script is defined and item.script %}
+{{ item.script | indent(2, true) }}
+{% endif %}

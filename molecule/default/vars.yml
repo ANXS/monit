@@ -1,0 +1,37 @@
+---
+monit_email_enable: false
+monit_poll_period: 2
+monit_poll_start_delay: 0
+monit_port: 2812
+monit_address: "127.0.0.1"
+monit_allow:
+  - localhost
+
+monit_active_process_checks:
+  - name: molecule_http
+    matching: "python3 -m http.server 18080"
+    service: molecule-http
+    action: restart
+    port:
+      number: 18080
+      protocol: http
+      request: /
+      status: 200
+
+monit_retired_process_check:
+  name: retired_http
+  matching: "python3 -m http.server 18080"
+  service: molecule-http
+  action: alert
+
+monit_network_checks:
+  - name: loopback
+    address: "127.0.0.1"
+    action: alert
+
+monit_filesystem_checks:
+  - name: rootfs
+    path: /
+    space_percent: 99
+    inode_percent: 99
+    action: alert

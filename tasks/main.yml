@@ -1,52 +1,295 @@
-# file: monit/tasks/main.yml
-
-- name: Monit | Make sure monit is installed
-  apt:
-    pkg: monit
+---
+- name: Install Monit
+  ansible.builtin.apt:
+    name: monit
     state: present
 
-- name: Monit | Update the monit configuration (/etc/monit/monitrc)
-  template:
-    src: "etc/monit/monitrc.j2"
-    dest: "/etc/monit/monitrc"
-    mode: 0400
-  no_log: "{{ ansible_verbosity | int < 4 }}"
-  notify:
-    - restart monit
+- name: Collect service facts
+  ansible.builtin.service_facts:
 
-- name: Monit | Copy the sshd monit service files
-  template:
-    src: "etc/monit/conf.d/{{item}}.j2"
-    dest: "/etc/monit/conf.d/{{item}}"
-  with_items:
-    - sshd
-    - cron
-    - ntp
-  notify:
-    - reload monit
+- name: Initialize resolved checks
+  ansible.builtin.set_fact:
+    monit_ntp_check: {}
+    monit_legacy_process_checks: []
 
-- name: Create configs
-  template:
-    src: "etc/monit/conf.d/{{ item.type | default('base') }}.conf.j2"
-    dest: "/etc/monit/conf.d/{{ item.type | default('base') }}_{{ item.process | default(item.pid | basename | replace('.pid', '')) }}.conf"
+- name: Resolve NTP service
+  ansible.builtin.set_fact:
+    monit_ntp_check:
+      name: ntp
+      matching: "{{ item.matching }}"
+      service: "{{ item.name }}"
+      action: restart
+  loop: "{{ monit_ntp_candidates }}"
+  when: >-
+    item.name == monit_ntp_service
+    or (
+      monit_ntp_service == "auto"
+      and item.unit in ansible_facts.services
+      and ansible_facts.services[item.unit].state == "running"
+    )
+
+- name: Require configured NTP service
+  ansible.builtin.assert:
+    that:
+      - monit_ntp_service == "auto" or monit_ntp_check | length > 0
+    fail_msg: >-
+      monit_ntp_service={{ monit_ntp_service }} does not name a running
+      service from monit_ntp_candidates.
+    quiet: true
+
+- name: Adapt legacy process checks
+  ansible.builtin.set_fact:
+    monit_legacy_process_checks: >-
+      {{
+        monit_legacy_process_checks
+        + [
+          {
+            "name": item.process | default(item.pid | basename | regex_replace("\\.pid$", "")),
+            "pidfile": item.pid,
+            "service": item.service
+              | default(item.process | default(item.pid | basename | regex_replace("\\.pid$", ""))),
+            "action": item.action | default("restart"),
+            "timeout": item.timeout | default(60)
+          }
+          | combine({"start": item.start} if item.start is defined else {})
+          | combine({"stop": item.stop} if item.stop is defined else {})
+          | combine({"script": item.script} if item.script is defined else {})
+        ]
+      }}
+  loop: "{{ monit_process_list }}"
+
+- name: Resolve effective checks
+  ansible.builtin.set_fact:
+    monit_effective_process_checks: >-
+      {{
+        monit_default_checks
+        + ([monit_ntp_check] if monit_ntp_check | length > 0 else [])
+        + monit_process_checks
+        + monit_legacy_process_checks
+      }}
+
+- name: Validate check collections
+  ansible.builtin.assert:
+    that:
+      - monit_default_checks is sequence
+      - monit_process_checks is sequence
+      - monit_process_list is sequence
+      - monit_network_checks is sequence
+      - monit_filesystem_checks is sequence
+    fail_msg: Monit check variables must be lists.
+    quiet: true
+
+- name: Validate process checks
+  ansible.builtin.assert:
+    that:
+      - item.name is defined
+      - item.name is match("^[A-Za-z0-9_-]+$")
+      - (item.matching | default("") | length > 0) != (item.pidfile | default("") | length > 0)
+      - item.action | default("restart") in ["alert", "restart", "start", "stop", "unmonitor"]
+      - item.every | default(1) | int > 0
+      - item.port | default({}) | length == 0
+        or item.port.number | default(0) | int > 0
+      - item.port | default({}) | length == 0
+        or item.port.number | int <= 65535
+      - item.port | default({}) | length == 0
+        or item.port.type | default("tcp") in ["tcp", "udp"]
+    fail_msg: "Invalid Monit process check: {{ item }}"
+    quiet: true
+  loop: "{{ monit_effective_process_checks }}"
+
+- name: Validate network checks
+  ansible.builtin.assert:
+    that:
+      - item.name is defined
+      - item.name is match("^[A-Za-z0-9_-]+$")
+      - item.address is defined
+      - item.action | default("alert") in ["alert", "unmonitor"]
+      - item.every | default(1) | int > 0
+    fail_msg: "Invalid Monit network check: {{ item }}"
+    quiet: true
+  loop: "{{ monit_network_checks }}"
+
+- name: Validate filesystem checks
+  ansible.builtin.assert:
+    that:
+      - item.name is defined
+      - item.name is match("^[A-Za-z0-9_-]+$")
+      - item.path is defined
+      - item.action | default("alert") in ["alert", "unmonitor"]
+      - item.every | default(1) | int > 0
+      - item.space_percent | default(0) | int >= 0
+      - item.space_percent | default(0) | int <= 100
+      - item.inode_percent | default(0) | int >= 0
+      - item.inode_percent | default(0) | int <= 100
+    fail_msg: "Invalid Monit filesystem check: {{ item }}"
+    quiet: true
+  loop: "{{ monit_filesystem_checks }}"
+
+- name: Initialize managed config names
+  ansible.builtin.set_fact:
+    monit_desired_config_names: []
+
+- name: Add process config names
+  ansible.builtin.set_fact:
+    monit_desired_config_names: >-
+      {{ monit_desired_config_names + ["process_" ~ item.name ~ ".conf"] }}
+  loop: "{{ monit_effective_process_checks }}"
+
+- name: Add network config names
+  ansible.builtin.set_fact:
+    monit_desired_config_names: >-
+      {{ monit_desired_config_names + ["host_" ~ item.name ~ ".conf"] }}
+  loop: "{{ monit_network_checks }}"
+
+- name: Add filesystem config names
+  ansible.builtin.set_fact:
+    monit_desired_config_names: >-
+      {{ monit_desired_config_names + ["filesystem_" ~ item.name ~ ".conf"] }}
+  loop: "{{ monit_filesystem_checks }}"
+
+- name: Require unique Monit service names
+  ansible.builtin.assert:
+    that:
+      - >-
+        (
+          monit_effective_process_checks
+          + monit_network_checks
+          + monit_filesystem_checks
+        )
+        | map(attribute="name")
+        | list
+        | unique
+        | length
+        ==
+        (
+          monit_effective_process_checks
+          + monit_network_checks
+          + monit_filesystem_checks
+        )
+        | length
+    fail_msg: Monit service names must be unique across all check types.
+    quiet: true
+
+- name: Create Monit directories
+  ansible.builtin.file:
+    path: "{{ item.path }}"
+    state: directory
     owner: root
     group: root
-    mode: 0644
-  with_flattened:
-    - "{{ monit_process_list }}"
-  when: item.pid is defined and item.pid
-  notify:
-    - reload monit
+    mode: "{{ item.mode }}"
+  loop:
+    - path: /etc/monit/conf.d
+      mode: "0755"
+    - path: "{{ monit_managed_state_dir }}"
+      mode: "0755"
 
-- name: Monit | Determine queued messages
-  command: "ls -1 {{monit_eventqueue_directory}}/"
-  register: monit_queued_messages
-  when: not monit_email_enable or not monit_eventqueue_enable
-  changed_when: False
+- name: Inspect ownership manifest
+  ansible.builtin.stat:
+    path: "{{ monit_managed_state_dir }}/configs.list"
+  register: monit_managed_manifest_stat
 
-- name: Monit | Remove queued messages
-  file:
-    path: "{{monit_eventqueue_directory}}/{{item}}"
+- name: Read ownership manifest
+  ansible.builtin.slurp:
+    path: "{{ monit_managed_state_dir }}/configs.list"
+  register: monit_managed_manifest
+  when: monit_managed_manifest_stat.stat.exists
+
+- name: Resolve previously managed configs
+  ansible.builtin.set_fact:
+    monit_previous_config_names: >-
+      {{
+        (monit_managed_manifest.content | b64decode).splitlines()
+        | map("trim") | select | list
+        if monit_managed_manifest_stat.stat.exists
+        else ["sshd", "cron", "ntp"]
+      }}
+
+- name: Validate managed config names
+  ansible.builtin.assert:
+    that:
+      - item | length > 0
+      - item == item | basename
+      - item is match("^[A-Za-z0-9._-]+$")
+    fail_msg: "Monit managed config names must be safe basenames, got {{ item }}."
+    quiet: true
+  loop: "{{ monit_previous_config_names + monit_desired_config_names }}"
+
+- name: Remove retired managed configs
+  ansible.builtin.file:
+    path: "/etc/monit/conf.d/{{ item }}"
     state: absent
+  loop: "{{ monit_previous_config_names | difference(monit_desired_config_names) }}"
+  notify: Reload Monit
+
+- name: Render Monit control file
+  ansible.builtin.template:
+    src: etc/monit/monitrc.j2
+    dest: /etc/monit/monitrc
+    owner: root
+    group: root
+    mode: "0400"
+  no_log: "{{ ansible_verbosity | int < 4 }}"
+  notify: Restart Monit
+
+- name: Render process checks
+  ansible.builtin.template:
+    src: etc/monit/conf.d/process.conf.j2
+    dest: "/etc/monit/conf.d/process_{{ item.name }}.conf"
+    owner: root
+    group: root
+    mode: "0644"
+  loop: "{{ monit_effective_process_checks }}"
+  notify: Reload Monit
+
+- name: Render network checks
+  ansible.builtin.template:
+    src: etc/monit/conf.d/host.conf.j2
+    dest: "/etc/monit/conf.d/host_{{ item.name }}.conf"
+    owner: root
+    group: root
+    mode: "0644"
+  loop: "{{ monit_network_checks }}"
+  notify: Reload Monit
+
+- name: Render filesystem checks
+  ansible.builtin.template:
+    src: etc/monit/conf.d/filesystem.conf.j2
+    dest: "/etc/monit/conf.d/filesystem_{{ item.name }}.conf"
+    owner: root
+    group: root
+    mode: "0644"
+  loop: "{{ monit_filesystem_checks }}"
+  notify: Reload Monit
+
+- name: Write ownership manifest
+  ansible.builtin.template:
+    src: managed-files.list.j2
+    dest: "{{ monit_managed_state_dir }}/configs.list"
+    owner: root
+    group: root
+    mode: "0644"
+
+- name: Validate Monit configuration
+  ansible.builtin.command:
+    cmd: monit -t
+  changed_when: false
+
+- name: Enable Monit
+  ansible.builtin.systemd_service:
+    name: monit
+    enabled: true
+    state: started
+
+- name: Find queued events
+  ansible.builtin.find:
+    paths: "{{ monit_eventqueue_directory }}"
+    file_type: file
+  register: monit_queued_events
   when: not monit_email_enable or not monit_eventqueue_enable
-  with_items: "{{ monit_queued_messages.stdout_lines | default([]) }}"
+
+- name: Remove queued events
+  ansible.builtin.file:
+    path: "{{ item.path }}"
+    state: absent
+  loop: "{{ monit_queued_events.files | default([]) }}"
+  when: not monit_email_enable or not monit_eventqueue_enable
