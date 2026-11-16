@@ -1,0 +1,44 @@
+---
+dependency:
+  name: shell
+  command: "true"
+
+driver:
+  name: docker
+
+platforms:
+  - name: "monit-${MOLECULE_OS:-debian}-${MOLECULE_VERSION:-12}"
+    image: "${MOLECULE_IMAGE:-geerlingguy/docker-debian12-ansible:latest}"
+    volumes:
+      - /sys/fs/cgroup:/sys/fs/cgroup:rw
+    privileged: true
+    pre_build_image: true
+    cgroupns_mode: host
+    command: ${MOLECULE_DOCKER_COMMAND:-""}
+
+provisioner:
+  name: ansible
+  config_options:
+    defaults:
+      remote_tmp: /tmp/.ansible-${USER}/tmp/
+  env:
+    ANSIBLE_ROLES_PATH: "${MOLECULE_PROJECT_DIRECTORY}/..:${HOME}/.ansible/roles"
+
+verifier:
+  name: testinfra
+  options:
+    v: true
+
+# Add cleanup to the sequence only when the scenario has a cleanup playbook.
+scenario:
+  test_sequence:
+    - dependency
+    - destroy
+    - syntax
+    - create
+    - prepare
+    - converge
+    - idempotence
+    - side_effect
+    - verify
+    - destroy

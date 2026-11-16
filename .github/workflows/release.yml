@@ -1,0 +1,27 @@
+---
+name: Release to Ansible Galaxy
+
+'on':
+  push:
+    tags:
+      - "*"
+
+jobs:
+  release:
+    name: Import role to Ansible Galaxy
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - name: Install ansible-core
+        run: pip install ansible-core
+      - name: Import role to Galaxy
+        run: >-
+          ansible-galaxy role import
+          --token "${{ secrets.GALAXY_API_KEY }}"
+          --branch "${{ github.ref_name }}"
+          "ANXS"
+          "${{ github.event.repository.name }}"

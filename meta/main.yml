@@ -1,17 +1,25 @@
-# file: monit/meta/main.yml
-
+---
 galaxy_info:
-  author: pjan vandaele
-  company: ANXS
-  description: "Installs monit monitoring and management tool (and attaches it to ssh, cron, ntpd)."
-  min_ansible_version: 1.4
+  namespace: anxs
+  role_name: monit
+  author: ANXS Crew
+  description: Monit service monitoring with systemd-native checks
   license: MIT
+  min_ansible_version: "2.14"
   platforms:
-  - name: Ubuntu
-    versions:
-    - all
-  categories:
-  - system
-  - monitoring
+    - name: Debian
+      versions:
+        - bookworm
+        - trixie
+    - name: Ubuntu
+      versions:
+        - focal
+        - jammy
+        - noble
+  galaxy_tags:
+    - monitoring
+    - monit
+    - system
+    - systemd
 
 dependencies: []

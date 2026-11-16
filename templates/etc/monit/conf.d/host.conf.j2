@@ -1,0 +1,5 @@
+check host {{ item.name }} with address {{ item.address }}
+{% if item.every | default(1) | int > 1 %}
+  every {{ item.every }} cycles
+{% endif %}
+  if failed icmp type echo count {{ item.count | default(3) }} with timeout {{ item.timeout | default(3) }} seconds then {{ item.action | default("alert") }}

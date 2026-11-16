@@ -10,4 +10,10 @@ Icon
 .Spotlight-V100
 .Trashes
 .vagrant
+.venv/
+.ansible/
+.molecule/
+__pycache__/
+*.pyc
+*.retry
 test

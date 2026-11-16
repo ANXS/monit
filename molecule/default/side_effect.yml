@@ -1,0 +1,27 @@
+---
+- name: Retire one managed Monit check
+  hosts: all
+  become: true
+  gather_facts: true
+  vars_files:
+    - vars.yml
+  roles:
+    - role: "{{ lookup('env', 'MOLECULE_PROJECT_DIRECTORY') | basename }}"
+      vars:
+        monit_process_checks: "{{ monit_active_process_checks }}"
+  post_tasks:
+    - name: Stop HTTP fixture
+      ansible.builtin.systemd_service:
+        name: molecule-http
+        state: stopped
+
+    - name: Ask Monit to recover HTTP fixture
+      ansible.builtin.command:
+        cmd: monit start molecule_http
+      changed_when: true
+
+    - name: Wait for recovered HTTP fixture
+      ansible.builtin.wait_for:
+        host: "127.0.0.1"
+        port: 18080
+        timeout: 15

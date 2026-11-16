@@ -1,0 +1,20 @@
+---
+profile: production
+
+exclude_paths:
+  - .cache/
+  - .github/
+  - molecule/default/vars.yml
+
+offline: false
+
+supported_ansible_also:
+  - ">=2.14"
+
+verbosity: 1
+
+warn_list:
+  - experimental
+  - yaml[truthy]
+  - yaml[line-length]
+  - role-name

@@ -1,0 +1,10 @@
+check filesystem {{ item.name }} with path {{ item.path }}
+{% if item.every | default(1) | int > 1 %}
+  every {{ item.every }} cycles
+{% endif %}
+{% if item.space_percent is defined %}
+  if space usage > {{ item.space_percent }}% for {{ item.cycles | default(1) }} cycles then {{ item.action | default("alert") }}
+{% endif %}
+{% if item.inode_percent is defined %}
+  if inode usage > {{ item.inode_percent }}% for {{ item.cycles | default(1) }} cycles then {{ item.action | default("alert") }}
+{% endif %}
